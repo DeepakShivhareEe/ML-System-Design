@@ -28,7 +28,7 @@
 - For text/images: fine-tune a small pretrained transformer/CNN before dreaming of large models.
 - Heuristic/majority baseline to measure against.
 
-Why: simple baselines quantify how much signal sophisticated modeling adds, train fast, are easy to debug, cheap to serve, and often reach 90–95% of achievable quality. The gap between baseline and complex model is your "complexity budget" to spend consciously ([09.md](09.md) Q58).
+Why: simple baselines quantify how much signal sophisticated modeling adds, train fast, are easy to debug, cheap to serve, and often reach 90–95% of achievable quality. The gap between baseline and complex model is your "complexity budget" to spend consciously ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q58).
 
 **Step 2 — Match model family to data & task:**
 
@@ -52,7 +52,7 @@ Why: simple baselines quantify how much signal sophisticated modeling adds, trai
 
 **Step 4 — Compare candidates fairly:** identical data splits, same features, fixed seeds, multiple runs (report mean ± std), tune each candidate with a comparable budget (no strawman GBDT vs hero-tuned NN). Evaluate on the metric from Q24 and on slices.
 
-**Step 5 — Decide with a portfolio mindset:** ship the simple model first (gets the loop running, establishes MLOps), then iterate complexity only where the offline+online lift justifies it. Many production systems are **ensembles**: GBDT + simple NN, or cascade (cheap model handles 95% of traffic, big model the rest) ([09.md](09.md) Q57).
+**Step 5 — Decide with a portfolio mindset:** ship the simple model first (gets the loop running, establishes MLOps), then iterate complexity only where the offline+online lift justifies it. Many production systems are **ensembles**: GBDT + simple NN, or cascade (cheap model handles 95% of traffic, big model the rest) ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q57).
 
 **Interview sound bite:**
 > "I start with logistic regression and GBDT baselines, then let hard constraints — p99 latency, cost, explainability, team operability — eliminate candidates before accuracy ever comes up. I ship the simplest model that clears the business bar, and add complexity only when measured lift justifies its operational cost."
@@ -93,7 +93,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 
 **Step 5 — Always add slices.** A single aggregate number hides winners and losers. Evaluate per segment: geo, device, new-vs-power users, class, time period. Guardrail slices from Q5 apply here too.
 
-**Step 6 — Secondary metrics for robustness:** performance vs label lag, degradation curves over time (how fast does quality decay → informs retraining cadence, [07.md](07.md)), inference cost and latency per candidate.
+**Step 6 — Secondary metrics for robustness:** performance vs label lag, degradation curves over time (how fast does quality decay → informs retraining cadence, [07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md)), inference cost and latency per candidate.
 
 **Interview sound bite:**
 > "The metric must mirror the decision: I derive it from the action the prediction triggers, the cost asymmetry of the errors, and the class balance — PR-AUC and threshold tuning for rare-event problems, NDCG@k for ranking, calibrated probabilities wherever a threshold acts on them — and I never report an aggregate without per-slice breakdowns."
@@ -127,7 +127,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 - **Ensemble/stacking** and per-slice models where the minority lives in a specific segment.
 - **Beware evaluation leakage from resampling:** SMOTE and duplicates across folds inflate metrics — split first, resample within train folds only.
 
-**Practical defaults I'd state in an interview:** GBDT with `scale_pos_weight`, PR-AUC + threshold tuning, precision@capacity as the operational metric, hard-negative mining in the next data cycle, and monitoring recall on live confirmed labels ([07.md](07.md)).
+**Practical defaults I'd state in an interview:** GBDT with `scale_pos_weight`, PR-AUC + threshold tuning, precision@capacity as the operational metric, hard-negative mining in the next data cycle, and monitoring recall on live confirmed labels ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md)).
 
 **What NOT to do:** oversample before splitting; report accuracy; tune threshold on the test set; SMOTE categorical IDs; assume resampling fixes a features problem.
 
@@ -150,15 +150,15 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 2. **Slice table:** per segment/geo/device/class — no slice regresses beyond tolerance (guardrail slices from Q5).
 3. **Calibration comparison** if thresholds act on probabilities.
 4. **Head-to-head disagreement analysis:** on how many rows do they differ? Where the challenger wins, are the wins the *cases you care about*? (e.g. challenger catches 20% more fraud but on low amounts).
-5. **Operational profile:** latency p50/p99, memory, cost per 1k predictions — a model that's better but 5× slower may lose ([09.md](09.md) Q57).
+5. **Operational profile:** latency p50/p99, memory, cost per 1k predictions — a model that's better but 5× slower may lose ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q57).
 6. **Failure taxonomy:** sample 50–100 disagreements and hand-label them; produces a qualitative story ("challenger wins on new merchants, loses on recurring subscriptions").
 
 **Stage 3 — Shadow evaluation (no user impact):**
-- Deploy challenger alongside champion; mirror live traffic; compare predictions on real production distribution without exposing outputs ([08.md](08.md) Q51).
+- Deploy challenger alongside champion; mirror live traffic; compare predictions on real production distribution without exposing outputs ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q51).
 - Catches serving-time issues offline eval can't: feature skew, latency under load, logging gaps.
 
 **Stage 4 — Online comparison (causal gate):**
-- **A/B test** ([08.md](08.md) Q52): randomize traffic, primary business metric + guardrails, pre-computed sample size, run full weekly cycles, analyze with proper tests (and watch for novelty effects in week 1).
+- **A/B test** ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52): randomize traffic, primary business metric + guardrails, pre-computed sample size, run full weekly cycles, analyze with proper tests (and watch for novelty effects in week 1).
 - Interleaving (for ranking problems) can detect smaller differences with less traffic.
 - Ship only if primary metric lifts significantly and guardrails hold; otherwise keep champion and document what was learned.
 
@@ -166,7 +166,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 
 | Offline | Shadow | Online | Decision |
 |---|---|---|---|
-| ✅ better | ✅ same behavior | ✅ lift | Ship progressively ([08.md](08.md)) |
+| ✅ better | ✅ same behavior | ✅ lift | Ship progressively ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md)) |
 | ✅ better | ⚠️ latency/skew issues | — | Fix serving first |
 | ✅ better | ✅ | ❌ no lift / guardrail drop | Don't ship; investigate offline–online gap (Q28) |
 | ❌ worse | — | — | Archive; record learnings in registry |
@@ -186,7 +186,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 - **Group-aware splits** when the same entity must not straddle sets (same user in train and test → leakage for personalization problems).
 - For temporal data, use **walk-forward / rolling-origin evaluation**: evaluate on several successive windows, not one — this also measures how fast quality decays (retraining cadence signal).
 
-**2. Point-in-time-correct features** ([03.md](03.md) Q13/Q18) — training rows must contain only information available at prediction time. Leak-free or the rest doesn't matter.
+**2. Point-in-time-correct features** ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q13/Q18) — training rows must contain only information available at prediction time. Leak-free or the rest doesn't matter.
 
 **3. Metric suite, not a single number:** headline metric (Q24) + calibration + slices + secondary robustness metrics + business-weighted score if costs are known.
 
@@ -202,7 +202,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 
 **7. Serving-parity rehearsal:** evaluate the *deployed artifact* (the exact container), not the training-time model object — catches serialization/precision/preprocessing drift; plus a latency benchmark under representative load, and a small **backtest replay**: run the model over last month's real requests (features logged at serving time) and score outcomes — the best available proxy before shadow.
 
-**Output:** a model report card stored in the registry — metrics + slices + calibration + latency/cost + lineage (data hash, code commit) — the artifact reviewers gate on ([02.md](02.md) Q10).
+**Output:** a model report card stored in the registry — metrics + slices + calibration + latency/cost + lineage (data hash, code commit) — the artifact reviewers gate on ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q10).
 
 **Interview sound bite:**
 > "Offline eval = temporal/group-aware splits with point-in-time features, a metric suite with slices and calibration, a champion-relative baseline ladder, bootstrap CIs, robustness tests on degraded inputs — and I evaluate the exact serving artifact with a latency benchmark, not the notebook model."
@@ -223,7 +223,7 @@ Why ROC-AUC misleads under imbalance: with 99.9% negatives, FPR of 1% still mean
 | Cause | Signature | Test / fix |
 |---|---|---|
 | **Proxy mismatch** | Offline metric ↑ but it's not the business driver | Offline predicted clicks better; business wants revenue — evaluate revenue-weighted ranking |
-| **Distribution shift** | Live inputs differ from validation set | Compare logged serving features vs training features ([07.md](07.md) Q42); retrain on recent window |
+| **Distribution shift** | Live inputs differ from validation set | Compare logged serving features vs training features ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q42); retrain on recent window |
 | **Training–serving skew** | Offline great, online degraded, feature distributions differ at serving | Parity tests, logged-vs-batch feature diff (Q18) |
 | **Feedback loops** | Model changes user behavior → training data no longer i.i.d. | E.g. optimizing CTR → clickbait → long-term engagement ↓; add diversity guardrails, explore unbiased data |
 | **System/UX effects** | Latency p99 worse, different ordering/presentation, caching | Perf tracing; isolate model effect from system effect |

@@ -16,7 +16,7 @@
 | 40 | Reducing inference latency | Fix tails: profile, compile, batch with deadlines, cache, cascade |
 | 41 | Latency vs accuracy vs cost | The production triangle; quantify with cost-of-delay |
 
-**The canonical serving path (from [05.md](05.md), reused all chapter):**
+**The canonical serving path (from [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md), reused all chapter):**
 
 ```
 Client → Load Balancer → API Service → Feature Retrieval → Model Server → Prediction → Response
@@ -32,12 +32,12 @@ Client → Load Balancer → API Service → Feature Retrieval → Model Server 
 - **LB:** redundant pair / managed anycast LB across AZs.
 - **API tier:** ≥2 replicas per AZ; stateless; rolling deploys.
 - **Model tier:** N+1 warm replicas per AZ; models versioned and locally cached; no replica depends on a shared NFS to load.
-- **Feature tier:** the often-forgotten dependency — Redis/DynamoDB clusters replicated across AZs with failover; local in-process caches cushion blips ([05.md](05.md) Q31).
+- **Feature tier:** the often-forgotten dependency — Redis/DynamoDB clusters replicated across AZs with failover; local in-process caches cushion blips ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q31).
 - **Data plane:** managed multi-AZ Kafka/warehouse; serving must not *synchronously* depend on anything batch.
 - **Multi-region** when the SLO demands: active-active with regional stacks (feature stores, models), latency-based routing, defined drain procedures.
 
 **2. Health, readiness, and rollback (contain the failures you cause yourself):**
-- Health checks that exercise real inference ([05.md](05.md) Q35); readiness gates before traffic; auto-rollback on canary regression ([08.md](08.md) Q49/Q53).
+- Health checks that exercise real inference ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35); readiness gates before traffic; auto-rollback on canary regression ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q49/Q53).
 - Deploy during low-traffic windows; keep the previous model warm (blue-green) for instant revert.
 
 **3. Graceful degradation ladder (pre-decided, pre-built, chaos-tested):**
@@ -48,7 +48,7 @@ L0 full model path → L1 cached/last-known-good scores → L2 warm fallback mod
 ```
 Availability math worth quoting: with per-AZ failure probability p and enough replicas, redundancy converts AZ loss from an outage into a capacity dip — *if* the remaining fleet can absorb the load (hence headroom + load-shedding).
 
-**4. Protect against silent failures (ML-specific):** a system returning fast 200s with stale features or broken scores is "up" but wrong. HA therefore includes: feature-freshness alarms, score-distribution monitoring ([07.md](07.md) Q45), and fallback-rate as an SLO (alert when >X% of traffic degrades).
+**4. Protect against silent failures (ML-specific):** a system returning fast 200s with stale features or broken scores is "up" but wrong. HA therefore includes: feature-freshness alarms, score-distribution monitoring ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q45), and fallback-rate as an SLO (alert when >X% of traffic degrades).
 
 **5. Capacity for failure:** headroom ≥ 1 AZ's worth of replicas; load tests at N-1 capacity; autoscaling policies tested with drills, not assumed.
 
@@ -70,14 +70,14 @@ Availability math worth quoting: with per-AZ failure probability p and enough re
 - **Scale-out lag is the killer:** a new replica must pull the model artifact (GBs) and warm caches before serving → pod startup 30 s–5 min. Mitigations: pre-warmed pools, model images baked into the container (not pulled at boot), predictive scaling before known peaks, fast artifact local cache.
 - Scale-in stability: slow scale-down, drain connections, avoid flapping on bursty traffic.
 
-**3. Size the shared dependencies with the fleet:** the feature store (Redis cluster QPS), the prediction log (Kafka partitions), and the LB all scale *with* replicas — the fleet is only as scalable as its slowest shared tier ([05.md](05.md) Q34).
+**3. Size the shared dependencies with the fleet:** the feature store (Redis cluster QPS), the prediction log (Kafka partitions), and the LB all scale *with* replicas — the fleet is only as scalable as its slowest shared tier ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q34).
 
 **4. Partitioning & routing options as scale grows:**
 - Heterogeneous pools per model class (CPU pool for GBDT, GPU pool for NNs) and per priority tier.
 - Consistent-hash routing by entity when per-entity caches help (cache-aware LB).
 - Cell-based architecture at extreme scale: independent cells (LB + API + models + local feature cache) failing independently; a cell's blast radius is itself.
 
-**5. Efficiency compounding:** every 2× model speedup (compile/quantize/distill, [09.md](09.md) Q54) halves the fleet — horizontal scaling and per-request cost reduction multiply, they don't substitute.
+**5. Efficiency compounding:** every 2× model speedup (compile/quantize/distill, [09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q54) halves the fleet — horizontal scaling and per-request cost reduction multiply, they don't substitute.
 
 **Capacity math template:** replicas = peak QPS × p99 service time × safety factor (1.3–2) ÷ per-replica concurrency; then load-test N-1.
 
@@ -99,7 +99,7 @@ Availability math worth quoting: with per-AZ failure probability p and enough re
 - Under overload: protect p99 for high tiers by shedding/rejecting or degrading low tiers *early* — a fast cached answer beats a slow timeout for everyone behind you in the queue.
 - Load-shed signals: queue depth, in-flight requests vs limit, CPU saturation — drop *before* latency explodes (hysteresis to avoid flapping).
 
-**4. Degrade the response, not the product:** the [05.md](05.md) Q35 ladder applies under load too — cached predictions, smaller fallback model, rules-based defaults. Serving last-hour cached recs during a spike is invisible to users; 30-second timeouts are not.
+**4. Degrade the response, not the product:** the [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35 ladder applies under load too — cached predictions, smaller fallback model, rules-based defaults. Serving last-hour cached recs during a spike is invisible to users; 30-second timeouts are not.
 
 **5. Defend against self-inflicted spikes:** exponential backoff + jitter on every client/retry path, circuit breakers, request coalescing (identical concurrent requests share one computation — thundering-herd protection), per-client rate limits so one misbehaving caller can't DDoS the fleet.
 
@@ -125,12 +125,12 @@ Availability math worth quoting: with per-AZ failure probability p and enough re
 - **Backpressure** over unlimited queueing for async work; load-shedding for interactive work.
 
 **3. ML-data level — the faults unique to ML:**
-- **Bad data containment:** validation gates + quarantine ([03.md](03.md) Q16/Q17) so a corrupted upstream fails safe instead of training a broken model; training jobs consume only validated snapshots.
+- **Bad data containment:** validation gates + quarantine ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q16/Q17) so a corrupted upstream fails safe instead of training a broken model; training jobs consume only validated snapshots.
 - **Bad model containment:** registry-gated deployment only; canary auto-abort; previous model kept warm for instant rollback; the degradation ladder covers "model present but wrong."
 - **Stale everything:** if retraining stops (pipeline down), the champion keeps serving — models don't expire in hours. Alert on pipeline staleness separately from serving health.
 - **Label/feedback failures:** missing labels degrade monitoring quality gradually — monitor label-arrival rates too.
 
-**4. Prove it, don't hope it:** chaos drills — kill model pods, blackhole Redis, corrupt a canary's features, throttle the prediction log — and assert the ladder engages and SLOs hold. Game days beat runbooks nobody has opened ([05.md](05.md) Q35).
+**4. Prove it, don't hope it:** chaos drills — kill model pods, blackhole Redis, corrupt a canary's features, throttle the prediction log — and assert the ladder engages and SLOs hold. Game days beat runbooks nobody has opened ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35).
 
 **Interview sound bite:**
 > "Redundant failover per tier, bulkheads and circuit breakers between dependencies, deadlines with fallbacks everywhere — plus ML-specific containment: validation gates stop bad data at the boundary, registry gates and canary auto-abort stop bad models, and stale models keep serving while pipelines are down. Then I chaos-test the whole ladder."
@@ -141,22 +141,22 @@ Availability math worth quoting: with per-AZ failure probability p and enough re
 
 **Answer.** A prioritized playbook — measure first, then attack in this order (biggest wins first in most systems):
 
-**1. Measure at p99 per stage** (feature fetch / preprocess / model / postprocess) — never optimize an aggregate; [05.md](05.md) Q33 lists the decomposition.
+**1. Measure at p99 per stage** (feature fetch / preprocess / model / postprocess) — never optimize an aggregate; [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q33 lists the decomposition.
 
 **2. Feature path (usually #1):**
 - Parallelize all feature-group fetches; batch KV reads (mget/pipeline) instead of N round-trips.
 - Local in-process cache for hot entities (TTL-bounded); colocate API and feature store in-region/AZ.
-- Precompute aggregates offline ([03.md](03.md) Q21); shrink the feature vector to what the model uses.
+- Precompute aggregates offline ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q21); shrink the feature vector to what the model uses.
 
 **3. Model path:**
 - **Compile & quantize:** ONNX Runtime/TensorRT; INT8/FP16 — often 2–5× on NNs at negligible accuracy loss (re-verify on slices!).
 - **Distill** large teachers into small students when quality allows; pick smaller architectures sized to the latency budget.
-- **Batching with a deadline:** dynamic batching (Triton) raises GPU throughput; cap queue wait to protect p99 ([05.md](05.md) Q31).
+- **Batching with a deadline:** dynamic batching (Triton) raises GPU throughput; cap queue wait to protect p99 ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q31).
 - Hardware fit: GBDT on CPU, NN on GPU; right-size, don't default. For LLMs: KV-cache reuse, continuous batching, streaming, speculative decoding.
 
 **4. Demand side:**
 - Cache predictions (keyed by model version + inputs) and product views (pre-ranked lists); TTL = staleness tolerance.
-- Cascades: cheap path first, big model only for uncertain cases ([09.md](09.md) Q57).
+- Cascades: cheap path first, big model only for uncertain cases ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q57).
 
 **5. Tail-specific fixes:** warm pools + readiness gates (cold starts), GC tuning / ZGC or arena allocation (pauses), connection pooling/keep-alive (handshakes), hedged requests for stragglers on idempotent reads, shed before you stall.
 
@@ -190,7 +190,7 @@ Availability math worth quoting: with per-AZ failure probability p and enough re
 - **Batch precompute:** infinite compute budget per prediction when freshness allows.
 - **Async UX:** where product allows, compute during user dwell (pre-rank while the page renders).
 
-**4. Governance:** cost and latency are guardrail metrics on the model scorecard ([04.md](04.md) Q26); every challenger must report all three axes; revisit quarterly as hardware (cheaper inference) and models (better small models) move the frontier.
+**4. Governance:** cost and latency are guardrail metrics on the model scorecard ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26); every challenger must report all three axes; revisit quarterly as hardware (cheaper inference) and models (better small models) move the frontier.
 
 **Worked micro-example (state one like this):** fraud at checkout — budget p99 100 ms, $/1k capped. Solution: rules (0.5 ms) → GBDT with 40 features (5 ms) catches 92% of fraud; a heavy DL ensemble adds +0.7% but needs 80 ms — deploy it only for transactions >$500 (cascade), keeping mean cost near the GBDT path while the high-value tail gets the big model. Total: accuracy of the ensemble where it pays, cost of the GBDT everywhere else.
 

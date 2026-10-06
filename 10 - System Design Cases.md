@@ -1,7 +1,7 @@
 # 10. System Design Cases
 
 > **Section 10 of 10** · Questions 59–68 · Estimated study time: 6–8 hours (practice out loud, one case at a time)
-> The payoff chapter: ten complete designs applying the framework from [01.md](01.md)–[09.md](09.md). These are the interviews.
+> The payoff chapter: ten complete designs applying the framework from [01 - System Design Fundamentals.md](01 - System Design Fundamentals.md)–[09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md). These are the interviews.
 
 ---
 
@@ -57,7 +57,7 @@ Serve: precomputed per-user feed (batch, hourly) + real-time re-rank of top 100
 
 **Cold start:** new users → segment/demographic defaults + trending; new items → content embeddings (from text/images) until interaction data accrues; explore via small % randomized impressions to collect unbiased data.
 
-**Monitoring/retraining:** label join by request ID; CTR/conversion per slice (new vs returning, category); two-tower retrains weekly, ranker daily; item embeddings refreshed incrementally; fallback = trending list ([05.md](05.md) Q35).
+**Monitoring/retraining:** label join by request ID; CTR/conversion per slice (new vs returning, category); two-tower retrains weekly, ranker daily; item embeddings refreshed incrementally; fallback = trending list ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35).
 
 **Key trade-offs to voice:** batch base + real-time delta (cost); exploration logging for feedback-loop bias; diversity guardrail against filter bubbles.
 
@@ -79,7 +79,7 @@ Serve: precomputed per-user feed (batch, hourly) + real-time re-rank of top 100
 
 **Requirements (assumed):** 5k TPS at checkout, p99 ≤ 100 ms decision, verdicts: allow / challenge (step-up auth) / block; primary = fraud loss rate (guardrails: false-positive rate, customer-friction complaints, review-queue volume).
 
-**ML framing:** binary classification on (transaction, user, merchant, device context); label = chargeback/confirmed-fraud within 60–90 days (**delayed labels**, [07.md](07.md) Q46). Extreme imbalance (0.1%) → PR-AUC, precision@capacity, cost-based thresholds ([04.md](04.md) Q25).
+**ML framing:** binary classification on (transaction, user, merchant, device context); label = chargeback/confirmed-fraud within 60–90 days (**delayed labels**, [07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q46). Extreme imbalance (0.1%) → PR-AUC, precision@capacity, cost-based thresholds ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q25).
 
 **Features (velocity is the domain):** per-user/card transaction velocity (1 min/1 h/24 h/7 d — **streaming features**), amount vs rolling averages, merchant risk scores, device/IP fingerprint reputation, geo-velocity (impossible travel), session behavior (typing/copy-paste patterns), graph features (shared devices/cards across accounts).
 
@@ -97,11 +97,11 @@ Challenge path: step-up auth outcome becomes a fast label
 High-uncertainty: human review queue (labels + capacity control)
 ```
 
-**Serving:** strict cascade — rules (1 ms) → GBDT (10 ms) → heavy model only for >$500 or uncertain ([06.md](06.md) Q41 worked example). **Fail-safe policy explicit:** model server down → rules-only mode, biased toward challenge over silent allow.
+**Serving:** strict cascade — rules (1 ms) → GBDT (10 ms) → heavy model only for >$500 or uncertain ([06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md) Q41 worked example). **Fail-safe policy explicit:** model server down → rules-only mode, biased toward challenge over silent allow.
 
-**Monitoring/retraining:** fastest-drifting domain — adversaries adapt ([07.md](07.md) Q44). Score distributions per merchant category, overturn rate from analysts, proxy labels (complaints, step-up failures) daily; expert-sampled unbiased review weekly; daily retraining on recent windows + hard-negative mining; rules respond same-day, models absorb next-day.
+**Monitoring/retraining:** fastest-drifting domain — adversaries adapt ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q44). Score distributions per merchant category, overturn rate from analysts, proxy labels (complaints, step-up failures) daily; expert-sampled unbiased review weekly; daily retraining on recent windows + hard-negative mining; rules respond same-day, models absorb next-day.
 
-**Cost/security notes:** extraction resistance (coarse outputs, rate limits, anomaly detection on query patterns — [09.md](09.md) Q55); model versioning with per-merchant slices; every decision logged with served features (disputes/audits need explainability).
+**Cost/security notes:** extraction resistance (coarse outputs, rate limits, anomaly detection on query patterns — [09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q55); model versioning with per-merchant slices; every decision logged with served features (disputes/audits need explainability).
 
 ---
 
@@ -132,7 +132,7 @@ Query ──► 1. RETRIEVAL (<30 ms): BM25 + semantic (embedding ANN) union, ~1
 
 **Features:** query-item match (BM25, embedding similarity), item quality/CTR by position (position-bias aware), user history (affinity, recent context), freshness, availability. **Position-bias handling:** train with position as feature + counterfactual corrections (inverse propensity weighting), or the model learns "show high = get clicks" and self-reinforces.
 
-**Training data:** clicks logged with positions + query features; dedupe against bot traffic; random-interleaving experiments for sensitive comparisons ([08.md](08.md) Q52 interleaving note).
+**Training data:** clicks logged with positions + query features; dedupe against bot traffic; random-interleaving experiments for sensitive comparisons ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52 interleaving note).
 
 **Monitoring:** zero-result rate (query-understanding health), NDCG on matured labeled judgments + interleaving results, per-category slices, tail-latency of retrieval stage (ANN index rebuilds are a classic outage source).
 
@@ -150,7 +150,7 @@ Query ──► 1. RETRIEVAL (<30 ms): BM25 + semantic (embedding ANN) union, ~1
 
 **Serving:** hybrid — **batch baseline prices hourly + real-time multiplier** from streaming supply/demand signals (p99 ~50 ms); smoothing/oscillation dampers in the policy layer (prices shouldn't flicker within a session); fairness/regulatory guardrails (no surge on emergencies — hard rules outside the model).
 
-**Feedback loops are the whole difficulty:** pricing changes demand which changes training data → log pre-price demand estimates; run controlled price experiments (switchback by market/time, [08.md](08.md) Q52 interference note) for causal elasticity.
+**Feedback loops are the whole difficulty:** pricing changes demand which changes training data → log pre-price demand estimates; run controlled price experiments (switchback by market/time, [08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52 interference note) for causal elasticity.
 
 **Monitoring:** prediction-vs-realized distribution, guardrail metrics per market, lag of competitor feeds (stale competitor prices are silently poisonous), anomaly alerts on price spikes.
 
@@ -158,15 +158,15 @@ Query ──► 1. RETRIEVAL (<30 ms): BM25 + semantic (embedding ANN) union, ~1
 
 ## Q65. Design a customer churn prediction system
 
-**Requirements (assumed):** 10M subscribers; score weekly; output consumed by retention team (offers) — **batch-first is correct** ([05.md](05.md) Q30): no real-time constraint → nightly/weekly scoring, huge cost win, heavy models affordable.
+**Requirements (assumed):** 10M subscribers; score weekly; output consumed by retention team (offers) — **batch-first is correct** ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q30): no real-time constraint → nightly/weekly scoring, huge cost win, heavy models affordable.
 
-**Framing:** binary classification, P(churn within 30 days); label = cancellation (define precisely: voluntary only? dormant ≠ churned — proxy-target trap, [01.md](01.md) Q4). Metric: PR-AUC + lift@top-decile (retention team works the top k%); guardrail: offer-waste rate.
+**Framing:** binary classification, P(churn within 30 days); label = cancellation (define precisely: voluntary only? dormant ≠ churned — proxy-target trap, [01 - System Design Fundamentals.md](01 - System Design Fundamentals.md) Q4). Metric: PR-AUC + lift@top-decile (retention team works the top k%); guardrail: offer-waste rate.
 
 **Features:** usage trend slopes (30/90 d), engagement breadth (features used), support tickets, payment failures, contract/billing cycle position, competitor-market signals. Strong candidates: **recency-frequency-monetary + trend features** on a GBDT — simple wins here (Q58).
 
-**Serving:** weekly batch scoring → scores table → CRM activation (offers, campaigns); explainability per customer (top SHAP drivers: "support tickets ×3, usage ↓40%") because retention managers act on reasons, not numbers ([09.md](09.md) Q58).
+**Serving:** weekly batch scoring → scores table → CRM activation (offers, campaigns); explainability per customer (top SHAP drivers: "support tickets ×3, usage ↓40%") because retention managers act on reasons, not numbers ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q58).
 
-**Evaluation subtlety:** the *intervention* changes outcomes (offers retain would-be churners → labels say "no churn" because the model worked) — model uplift vs raw churn requires holdout groups: keep a % of flagged users untreated to measure true model quality ([08.md](08.md) Q52 logic applied to retention).
+**Evaluation subtlety:** the *intervention* changes outcomes (offers retain would-be churners → labels say "no churn" because the model worked) — model uplift vs raw churn requires holdout groups: keep a % of flagged users untreated to measure true model quality ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52 logic applied to retention).
 
 **Monitoring/retraining:** monthly retrain on matured cohorts; drift on usage features after product changes; segment slices (prepaid vs postpaid churn differently — often two models).
 
@@ -190,11 +190,11 @@ Upload ──► Preprocess (decode/resize, GPU, 5–10 ms) ──► Model (ViT
                                                clean → publish
 ```
 
-**Serving:** GPU pools with **dynamic batching** (Triton, deadline-bounded), quantized INT8 models (2–4×), cascade: tiny filter model declines 90% clean images in 2 ms, full model on the rest; autoscaling on upload-rate leading indicator ([06.md](06.md) Q38 — upload spikes at product launches).
+**Serving:** GPU pools with **dynamic batching** (Triton, deadline-bounded), quantized INT8 models (2–4×), cascade: tiny filter model declines 90% clean images in 2 ms, full model on the rest; autoscaling on upload-rate leading indicator ([06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md) Q38 — upload spikes at product launches).
 
 **Data ops:** review queues double as labeling (active learning: route uncertain/diverse samples to reviewers); hard-negative mining from appeals (false positives are your best training data); dedupe perceptual hashes (same meme 10k×).
 
-**Monitoring:** per-class precision/recall on matured review outcomes, drift when a new violation genre emerges (concept drift, [07.md](07.md) Q44 — adversaries pivot like spammers), preprocessing latency (decode is often the hidden bottleneck), fallback = "hold for review" (fail-safe, never auto-publish under model outage).
+**Monitoring:** per-class precision/recall on matured review outcomes, drift when a new violation genre emerges (concept drift, [07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q44 — adversaries pivot like spammers), preprocessing latency (decode is often the hidden bottleneck), fallback = "hold for review" (fail-safe, never auto-publish under model outage).
 
 **Trade-offs:** accuracy on rare classes vs review capacity; batch window vs publish latency; model updates gated by canary + appeal-rate guardrail.
 
@@ -224,12 +224,12 @@ Query ──► Hybrid retrieval: dense top-50 + BM25 top-50 ──► fusion (R
 - **Chunking** is the highest-leverage knob (semantic/structural chunking beats fixed windows; eval it).
 - **Hybrid retrieval** (dense + BM25 with RRF) — dense-only misses exact IDs/SKUs/rare terms.
 - **Reranking** with a cross-encoder on the fused top-100 → top-5: biggest single quality win per ms spent.
-- **ACL enforcement at retrieval time** (filter by user's permissions *inside* the index query, never post-hoc) — the #1 enterprise RAG security requirement ([09.md](09.md) Q55).
-- **Freshness:** incremental indexing pipeline (CDC/queues → re-embed changed chunks only); index staleness monitored like any feature ([03.md](03.md) Q21).
+- **ACL enforcement at retrieval time** (filter by user's permissions *inside* the index query, never post-hoc) — the #1 enterprise RAG security requirement ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q55).
+- **Freshness:** incremental indexing pipeline (CDC/queues → re-embed changed chunks only); index staleness monitored like any feature ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q21).
 - **Evaluation:** retrieval metrics (recall@k against labeled question–doc pairs), groundedness/citation precision (LLM-judge + sampled human review), end-to-end win-rate vs baseline; monitor unanswered-rate and feedback thumbs-down as online signals.
-- **Failure modes to name:** retrieval misses (fix chunking/index/embedding model), stale index, contradictory sources (recency weighting), prompt-injection from doc content (treat retrieved text as data, [09.md](09.md) Q55), cost per query (cache frequent questions; small model for easy queries; cascade).
+- **Failure modes to name:** retrieval misses (fix chunking/index/embedding model), stale index, contradictory sources (recency weighting), prompt-injection from doc content (treat retrieved text as data, [09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q55), cost per query (cache frequent questions; small model for easy queries; cascade).
 
-**Scaling:** sharded ANN indexes, replica sets for QPS, embedding refresh as batch jobs on spot GPUs, per-tenant rate limits; eval harness in CI gates every index/embedding/prompt change ([04.md](04.md) Q27 discipline applied to the whole stack).
+**Scaling:** sharded ANN indexes, replica sets for QPS, embedding refresh as batch jobs on spot GPUs, per-tenant rate limits; eval harness in CI gates every index/embedding/prompt change ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q27 discipline applied to the whole stack).
 
 ---
 
@@ -257,12 +257,12 @@ User message ──► API gateway (auth, rate limits, input guardrails)
 ```
 
 **Key design decisions:**
-- **Model tiering:** small/fast model for intent + simple turns, frontier model for complex reasoning ([09.md](09.md) Q54 cascade); routing by classifier or first-pass confidence.
-- **Tools as products:** typed schemas, idempotency, least-privilege credentials, human confirmation for consequential actions (payments, deletions, sends) — the assistant's blast radius is governed by its tool permissions, not its prompts ([09.md](09.md) Q55 injection defenses).
+- **Model tiering:** small/fast model for intent + simple turns, frontier model for complex reasoning ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q54 cascade); routing by classifier or first-pass confidence.
+- **Tools as products:** typed schemas, idempotency, least-privilege credentials, human confirmation for consequential actions (payments, deletions, sends) — the assistant's blast radius is governed by its tool permissions, not its prompts ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q55 injection defenses).
 - **Prompt-injection defense:** retrieved content and tool outputs are *data, never instructions*; instruction hierarchy in system prompt; validate tool-call arguments against schemas before execution; sandbox execution (no raw shell on prod).
-- **Memory:** short-term = windowed context; long-term = explicit user-profile store (opt-in, editable, PII-governed per [09.md](09.md) Q56) — not implicit training on conversations.
+- **Memory:** short-term = windowed context; long-term = explicit user-profile store (opt-in, editable, PII-governed per [09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q56) — not implicit training on conversations.
 - **Latency:** streaming everywhere (first token fast), speculative tool prefetch for the obvious next call, KV-cache reuse across turns, parallel tool calls when independent.
-- **Evaluation & monitoring:** offline = task-success suites + groundedness + tool-call correctness (regression suite in CI per prompt/model change); online = task completion rate, escalation-to-human rate, thumbs down, guardrail-trip rate; **log full traces** for replay/eval ([07.md](07.md) Q46 logging discipline). Prompt changes are deployments: versioned, canaried ([08.md](08.md) Q50 logic applied to prompts and model versions).
+- **Evaluation & monitoring:** offline = task-success suites + groundedness + tool-call correctness (regression suite in CI per prompt/model change); online = task completion rate, escalation-to-human rate, thumbs down, guardrail-trip rate; **log full traces** for replay/eval ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q46 logging discipline). Prompt changes are deployments: versioned, canaried ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q50 logic applied to prompts and model versions).
 - **Cost:** per-conversation token accounting; cache common intents; batch offline work (summaries); budget caps per user/session (DoS-of-wallet defense).
 
 **Wrap-up line for the interview:** "The hard parts aren't the model — they're the tool-permission boundary, the eval harness that gates every change, and the trace logging that makes the whole thing debuggable."
@@ -271,7 +271,7 @@ User message ──► API gateway (auth, rate limits, input guardrails)
 
 ## Practice plan for this chapter
 
-1. Re-derive the skeleton from memory ([01.md](01.md) Q7 + [02.md](02.md) Q8), then run each case aloud against it, timed to 35–40 minutes.
+1. Re-derive the skeleton from memory ([01 - System Design Fundamentals.md](01 - System Design Fundamentals.md) Q7 + [02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q8), then run each case aloud against it, timed to 35–40 minutes.
 2. For each case, force yourself to state: **the two deepest components** (where you'll spend your depth budget) and **one cost trade-off** and **one failure story** you'd volunteer.
 3. Self-test: can you whiteboard Q59, Q61, and Q67 from a blank page in under 3 minutes each? Those three cover recsys, adversarial classification, and LLM-era retrieval — the patterns transfer to everything else in this list.
 

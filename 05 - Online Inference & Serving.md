@@ -1,7 +1,7 @@
 # 5. Online Inference & Serving
 
 > **Section 5 of 10** · Questions 29–35 · Estimated study time: 4–5 hours
-> The latency-critical right side of the architecture. Every design case in [10.md](10.md) has a serving path like this one.
+> The latency-critical right side of the architecture. Every design case in [10 - System Design Cases.md](10 - System Design Cases.md) has a serving path like this one.
 
 ---
 
@@ -42,7 +42,7 @@ Client → Load Balancer → API Service → Feature Retrieval → Model Server 
 **Also know — serving *topologies* within on-demand:**
 - **Model server dedicated** (Triton/TorchServe/KServe behind an API service) — the standard two-tier: API service handles auth/orchestration/features; model server does pure inference.
 - **Model in the API process** (pickle/ONNX in a FastAPI pod) — simple, fine for small models; couples scaling and deploys.
-- **Cascades/funnels:** cheap model (or cache/rules) answers most traffic; expensive model handles uncertain or high-value cases ([09.md](09.md) Q57).
+- **Cascades/funnels:** cheap model (or cache/rules) answers most traffic; expensive model handles uncertain or high-value cases ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q57).
 - **Ensembles/multi-model:** several models scored and blended (ranking + safety + business models).
 
 **Choosing:** if users can tolerate hours-old predictions → batch (cheapest). If the decision happens *at interaction time* → online. If there's no request but events flow → streaming. If no network available → on-device. If the model is a commodity LLM and data sensitivity allows → managed API and don't run a fleet.
@@ -76,7 +76,7 @@ Client → Load Balancer → API Service → Feature Retrieval → Model Server 
 
 **Pitfalls of batch:** prediction table staleness silently exceeding SLA (monitor generation timestamps); cold-start users missing from last night's run (fall back to segment-level scores); batch pipeline failure = day-old recs (alert + degrade to popular-items fallback).
 
-**Pitfalls of real-time:** p99 latency spikes from cold starts/GC (keep models warm); cost scaling linearly with traffic; every feature must be available at ms speed ([03.md](03.md) Q21).
+**Pitfalls of real-time:** p99 latency spikes from cold starts/GC (keep models warm); cost scaling linearly with traffic; every feature must be available at ms speed ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q21).
 
 **Interview sound bite:**
 > "The choice is a freshness requirement in disguise. If the product tolerates hours-old scores, batch is 10–100× cheaper. Real-time earns its cost only when the prediction depends on the live interaction. Most mature systems combine both: batch precomputation as the base layer, real-time models for the fresh delta."
@@ -105,14 +105,14 @@ Client ──► LB ──► API Service ────────────�
 
 **2. Feature retrieval (usually the #1 latency offender):**
 - Online store = in-memory KV (Redis/DynamoDB) with <5 ms reads; **local in-process cache** for hot entities with short TTL (careful with staleness semantics).
-- Precompute what can be precomputed ([03.md](03.md) Q21); request-time features are the only per-request computation.
+- Precompute what can be precomputed ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q21); request-time features are the only per-request computation.
 - Fetch only the features this model version needs (feature vector schema versioned with the model).
 
 **3. Model server efficiency:**
 - **Warm pools:** models preloaded in RAM; health checks keep them hot; no lazy loading on the request path. Cold start = seconds; p99 can't afford it.
 - **Right-size hardware:** GBDT on CPU; quantized/distilled models for NNs; GPU only when the model is big enough to amortize it.
 - **Dynamic batching with a deadline:** accumulate requests for a few ms and score as a batch on GPU (Triton dynamic batching) — trades ~5–10 ms for big throughput; cap queue time to protect p99.
-- **Inference optimizations:** ONNX Runtime/TensorRT compilation, quantization (INT8/FP8), distillation, operator fusion, graph pruning ([09.md](09.md) Q54).
+- **Inference optimizations:** ONNX Runtime/TensorRT compilation, quantization (INT8/FP8), distillation, operator fusion, graph pruning ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q54).
 - For LLM serving: continuous batching (vLLM/TGI), KV-cache reuse, streaming first tokens, speculative decoding where applicable.
 
 **4. Post-processing & policy:** cheap and deterministic (thresholds, business rules, ranking blends) — keep out of the model; cache decision results where policies repeat.
@@ -141,12 +141,12 @@ Client ──► LB ──► API Service ────────────�
 
 **3. Hardware & deployment efficiency:**
 - GPU sharing/MIG or batching when GPU utilization is low; CPU inference for tree models; autoscaling spot/burst pools for non-critical batch, on-demand capacity for critical paths.
-- Reduce per-request cost via quantization/distillation/ONNX-TensorRT ([09.md](09.md) Q54) — a 3× faster model is 3× fewer servers.
+- Reduce per-request cost via quantization/distillation/ONNX-TensorRT ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q54) — a 3× faster model is 3× fewer servers.
 
 **4. Caching & precomputation (cut demand, don't just supply it):**
 - Prediction caches (keyed by model version + inputs); product-level caches (pre-ranked lists); batch-precomputed scores for the long tail ([Q30](#q30-batch-inference-vs-real-time-inference--when-would-you-use-each)).
 
-**5. Traffic shaping — cascades:** cheap path handles 90–95% (cache/rules/small model), expensive model only for uncertain/high-value requests ([09.md](09.md) Q57). This flattens the load curve the fleet must absorb.
+**5. Traffic shaping — cascades:** cheap path handles 90–95% (cache/rules/small model), expensive model only for uncertain/high-value requests ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q57). This flattens the load curve the fleet must absorb.
 
 **6. Multi-region:** active-active regions with regional feature stores and model replicas; latency-based routing; traffic drains on regional failure. Consistency concerns: model versions must roll out per-region in lockstep (or be tracked per-region).
 
@@ -231,7 +231,7 @@ L4  functional degradation (hide the widget; static page) — product survives
 Example: fraud service down → rules engine + manual review queue (L3), never "allow everything" (fail-safe vs fail-open is a *business* decision — name it explicitly).
 
 **3. Contain bad deployments (the most common "failure"):**
-- Progressive delivery with auto-abort: canary sees 1–5% traffic; error-rate/latency/quality alarms roll back automatically ([08.md](08.md) Q49/Q53).
+- Progressive delivery with auto-abort: canary sees 1–5% traffic; error-rate/latency/quality alarms roll back automatically ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q49/Q53).
 - Keep the **previous model warm** (blue-green) for instant rollback; rollback must also pin the feature-vector version that model expects.
 - Artifact integrity: versioned, checksummed models; a corrupted load fails readiness rather than serving garbage.
 

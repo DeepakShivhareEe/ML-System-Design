@@ -107,7 +107,7 @@ MNAR is the dangerous one: silent imputation can bake bias into the model. **Mis
 
 ## Q18. How do you prevent training–serving skew?
 
-**Answer.** Covered in depth in [02.md](02.md) Q13 — here is the condensed exam version plus failure anecdotes to cite.
+**Answer.** Covered in depth in [02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q13 — here is the condensed exam version plus failure anecdotes to cite.
 
 **Definition:** training–serving skew = the feature distribution (or values) the model sees in production differs from what it was trained on.
 
@@ -124,7 +124,7 @@ MNAR is the dangerous one: silent imputation can bake bias into the model. **Mis
 
 **Detection (safety net):**
 - Parity tests: replay golden entities through both paths, diff outputs, run in CI.
-- Live distribution monitoring: serving feature distributions vs training reference ([07.md](07.md) Q42–43), per-feature alerts.
+- Live distribution monitoring: serving feature distributions vs training reference ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q42–43), per-feature alerts.
 - Predicted-score distribution monitoring — skew usually shows up as a shift in score distribution before labels do.
 
 **Anecdotes worth quoting in interviews:**
@@ -144,7 +144,7 @@ MNAR is the dangerous one: silent imputation can bake bias into the model. **Mis
 - **Definition-as-code:** transformation logic in a repo (SQL/dbt, Spark, Flink, Python), code-reviewed and tested.
 - **An owner and a contract:** name, semantics, unit, source tables, expected freshness, SLA, PII classification.
 - **A version:** changing the formula creates v2; historical values remain reconstructible for retraining.
-- **Two materializations:** offline (history for training) and online (latest for serving) ([02.md](02.md) Q13).
+- **Two materializations:** offline (history for training) and online (latest for serving) ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q13).
 - **Monitoring:** freshness, null rate, distribution drift, upstream-failure propagation.
 
 **Typical feature families (know examples for common domains):**

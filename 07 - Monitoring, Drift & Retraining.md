@@ -39,19 +39,19 @@
 └────────────────────────────────────────────────────────────┘
 ```
 
-**Layer 1 — System health (traditional SRE):** availability, latency percentiles *per stage* ([05.md](05.md) Q33), error rates, saturation (CPU/GPU/memory, queue depths), cost per hour and per 1k requests. Alerts: SLO burn rates.
+**Layer 1 — System health (traditional SRE):** availability, latency percentiles *per stage* ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q33), error rates, saturation (CPU/GPU/memory, queue depths), cost per hour and per 1k requests. Alerts: SLO burn rates.
 
 **Layer 2 — Data health (the earliest warning):**
 - **Freshness:** age of the newest data per source/feature group — stale features are the #1 silent killer.
 - **Volume:** rows/events per window vs trailing baseline (a 50% drop = broken upstream).
-- **Schema & validity:** conformance ([03.md](03.md) Q22), null rates, value ranges, new categories.
+- **Schema & validity:** conformance ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q22), null rates, value ranges, new categories.
 - **Distribution drift per feature** ([Q43](#q43-what-is-data-drift)): PSI/KL/JS against a training reference window.
 - **Label pipeline health:** arrival rate, lag, join rate of labels to predictions.
 
 **Layer 3 — Model health:**
 - **Score distribution:** the cheapest continuous model signal (no labels needed) — a sudden shift means inputs or model changed ([Q45](#q45-how-can-you-detect-model-performance-degradation)).
 - **Quality metrics when labels exist:** AUC/PR-AUC/NDCG on rolling windows, calibration (ECE/Brier), per-slice metrics (geo, device, cohort, class).
-- **Disagreement metrics:** rate of prediction flips vs previous model version; % of predictions below confidence threshold; fallback-model usage rate ([05.md](05.md) Q35).
+- **Disagreement metrics:** rate of prediction flips vs previous model version; % of predictions below confidence threshold; fallback-model usage rate ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35).
 - **Model version tracking:** every log line/prediction tagged with model version — untagged predictions make incident triage impossible.
 
 **Layer 4 — Business metrics:** the numbers executives see — conversion, revenue/session, fraud loss rate, churn rate, CTR — segmented the same way the model slices are. This layer *trumps* the others: healthy L1–L3 with a dropping L4 means the model is confidently doing the wrong thing (Goodhart).
@@ -85,7 +85,7 @@
 - Practical hygiene: compare like-for-like windows (same weekday/hour seasonality); exclude known-cause windows; distinguish slow drift (trend) from step change (incident).
 
 **S — what to do about it:**
-1. **Triage first:** is it a *pipeline bug* (schema/default change) or *real-world* drift? Fixing a bug ≠ retraining a model ([03.md](03.md) Q17).
+1. **Triage first:** is it a *pipeline bug* (schema/default change) or *real-world* drift? Fixing a bug ≠ retraining a model ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q17).
 2. Assess **impact**: drift on a feature with low model importance ≠ drift on the top-3 features. Rank alarmed features by SHAP/permutation importance before paging anyone.
 3. If impactful and real: **retrain on recent data** ([Q47](#q47-what-should-trigger-model-retraining)) — the standard remedy, since the model re-learns the new input distribution.
 4. If the relationship itself also moved (see next question), retraining alone may not suffice — reconsider features/target.
@@ -128,8 +128,8 @@
 1. **Retrain on recent windows** (weighted toward recent; sliding or time-decayed samples) — handles most gradual drift.
 2. **Feature refresh:** add features that capture the new concept (new device signals, new text patterns).
 3. **Model architecture/family change** when the old representation can't express the new concept.
-4. **Human-in-the-loop / rules layer** for adversarial domains: rules react in hours, models retrain in days; the hybrid is the standard fraud/spam defense ([10.md](10.md) Q61).
-5. **Faster retraining cadence or online learning** for fast concepts — with the validation discipline of [02.md](02.md) Q15.
+4. **Human-in-the-loop / rules layer** for adversarial domains: rules react in hours, models retrain in days; the hybrid is the standard fraud/spam defense ([10 - System Design Cases.md](10 - System Design Cases.md) Q61).
+5. **Faster retraining cadence or online learning** for fast concepts — with the validation discipline of [02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q15.
 
 **Example to quote:** spam — spammers invent new phrasing and image-heavy layouts; the word-frequency patterns the model learned stop separating spam from ham even though email volume (P(x)) is unchanged. Rules block the new campaign same-day; the retrained model absorbs it next week.
 
@@ -146,7 +146,7 @@
 - Rolling-window metrics on newly labeled outcomes: AUC/PR-AUC, F1 at operating threshold, NDCG@k, RMSE — computed daily/weekly on the freshest labeled slice.
 - Compare against (a) the model's training-time test metrics and (b) a frozen "birthday model" copy.
 - Calibration drift (ECE/Brier) — probabilities drifting while rankings stay OK (or vice versa).
-- **Per-slice trends**: aggregate stability with a collapsing slice is the classic miss ([04.md](04.md) Q27).
+- **Per-slice trends**: aggregate stability with a collapsing slice is the classic miss ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q27).
 
 **Signal class 2 — Label-free proxies (usable immediately, weaker evidence):**
 - **Score-distribution monitoring:** alert on PSI/JS shift of predicted scores vs a healthy reference ([Q42](#q42-what-should-be-monitored-in-a-production-ml-system)). Causes range from input drift to a broken feature to a bad deploy — all worth a page.
@@ -156,7 +156,7 @@
 - **User-behavior proxies:** skip rate on recommendations, ignore rate on notifications.
 
 **Signal class 3 — Business outcomes (the court of final appeal, slow and noisy):**
-- Fraud loss rate, conversion, CTR, complaint rate vs pre-decline baseline; ideally vs a holdout champion arm if you keep one running ([08.md](08.md) Q52).
+- Fraud loss rate, conversion, CTR, complaint rate vs pre-decline baseline; ideally vs a holdout champion arm if you keep one running ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52).
 
 **Putting it together — a diagnosis flow:**
 
@@ -169,7 +169,7 @@ Alarm fires (any layer)
                                                                     feature work/rollback)
 ```
 
-**Decay baselines (senior signal):** measure the *natural decay rate* — how much offline metric degrades per month of staleness on successive holdout windows ([04.md](04.md) Q27 walk-forward). That number sets your retraining cadence budget and tells you what a "normal" month of drift looks like, so alarms aren't tuned blind.
+**Decay baselines (senior signal):** measure the *natural decay rate* — how much offline metric degrades per month of staleness on successive holdout windows ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q27 walk-forward). That number sets your retraining cadence budget and tells you what a "normal" month of drift looks like, so alarms aren't tuned blind.
 
 **Interview sound bite:**
 > "I triangulate: label-based rolling metrics are the truth but arrive late; score-distribution and input-drift proxies fire early but need triage — pipeline bug vs real drift, weighted by feature importance; business metrics arbitrate. I also measure the model's natural decay rate on rolling holdouts so retraining cadence and alert thresholds come from data, not vibes."
@@ -182,12 +182,12 @@ Alarm fires (any layer)
 
 **1. Immediately available proxies (Day 0–1):**
 - Score/input distribution shift ([Q43](#q43-what-is-data-drift)/[Q45](#q45-how-can-you-detect-model-performance-degradation)).
-- **Proxy outcomes:** user complaint = weak negative label for fraud within hours; refund request = early churn signal; email bounce = bad address; add-to-cart with no purchase = intent signal. Build a **proxy-label dashboard** with explicitly documented bias (proxy labels are selected by user behavior — they're MAR at best, [03.md](03.md) Q17).
+- **Proxy outcomes:** user complaint = weak negative label for fraud within hours; refund request = early churn signal; email bounce = bad address; add-to-cart with no purchase = intent signal. Build a **proxy-label dashboard** with explicitly documented bias (proxy labels are selected by user behavior — they're MAR at best, [03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q17).
 - **Human-expert sampling:** daily random sample of predictions → fast-track manual labeling (the fraud team reviews 200 transactions today; chargeback truth for all of them arrives in 6 weeks). Small but *unbiased* — the anchor that keeps proxies honest.
 - **Analyst/expert overturn rate** as a live quality sensor ([Q44](#q44-what-is-concept-drift)).
 
 **2. Structural design — the label join (where most teams leak or lose data):**
-- **Log everything needed now:** `request_id`, timestamp, *full feature vector as served*, model version, prediction, and the decision/action taken. The feature vector log is what makes delayed labels joinable and the training set point-in-time-correct ([02.md](02.md) Q13).
+- **Log everything needed now:** `request_id`, timestamp, *full feature vector as served*, model version, prediction, and the decision/action taken. The feature vector log is what makes delayed labels joinable and the training set point-in-time-correct ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q13).
 - **Join labels by request/entity ID** when they arrive; store partial labels with their arrival time; build **label windows explicitly** ("chargeback within 60 days") and compute metrics only on cohorts whose window has fully matured.
 - **Maturing cohorts:** a prediction from today is "unresolved," not "correct" — track the cohort as *pending → matured*, and compute metrics only on matured cohorts. Forgetting this inflates or deflates metrics depending on score (high-risk scores get labels sooner → selection bias in naive metrics).
 
@@ -206,7 +206,7 @@ Alarm fires (any layer)
 
 ## Q47. What should trigger model retraining?
 
-**Answer.** Multiple triggers feeding one gated pipeline ([02.md](02.md) Q15). Design each trigger with a threshold, a cooldown, and an owner:
+**Answer.** Multiple triggers feeding one gated pipeline ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q15). Design each trigger with a threshold, a cooldown, and an owner:
 
 | Trigger type | Signal | Typical threshold / cadence |
 |---|---|---|
@@ -220,7 +220,7 @@ Alarm fires (any layer)
 | **Manual** | Incident postmortem, new hypothesis | On demand |
 
 **Design rules that separate senior answers:**
-1. **Triggers start runs; gates make decisions.** A trigger never auto-deploys — the retrained candidate must pass evaluation gates vs the pinned champion ([04.md](04.md) Q26) and progressive rollout ([Q48](#q48-how-would-you-safely-deploy-a-retrained-model)).
+1. **Triggers start runs; gates make decisions.** A trigger never auto-deploys — the retrained candidate must pass evaluation gates vs the pinned champion ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26) and progressive rollout ([Q48](#q48-how-would-you-safely-deploy-a-retrained-model)).
 2. **Cadence from measured decay:** use the natural decay rate ([Q45](#q45-how-can-you-detect-model-performance-degradation)) — if quality drops 1%/month, weekly retraining buys ~0.25%; is that worth the pipeline cost? For slow-decaying models, monthly is rational; for adversarial domains, daily.
 3. **Cooldowns and dedup:** drift alarms firing hourly must not thrash the cluster (cost, model churn, ops fatigue). Cooldown + "one run in flight" + backoff.
 4. **Data-sufficiency gate:** don't retrain on 2 days of data because 2 alarms fired — require minimum new-data volume and maturity.
@@ -239,18 +239,18 @@ Alarm fires (any layer)
 **Answer.** "Safe" = bad retrained models are caught **before** users see them, and contained **within minutes** if they slip through. The full pipeline, end to end:
 
 **1. Pre-deployment gates (offline, automated in CI):**
-- Beats pinned champion on primary metric beyond noise (bootstrap CI) on multiple time windows ([04.md](04.md) Q26).
+- Beats pinned champion on primary metric beyond noise (bootstrap CI) on multiple time windows ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26).
 - Slice guardrails: no segment regresses beyond tolerance; fairness constraints hold.
 - Calibration checked; threshold re-tuned to the new model's score distribution (a retrained model's probabilities shift — reusing the old threshold is a classic self-inflicted wound).
 - Operational profile: latency p99, memory, cost within budget; artifact integrity (checksummed, registry-versioned, lineage recorded: data hash + code commit + feature versions).
 
 **2. Shadow deployment (zero user risk):**
-- Mirror real traffic to the candidate; compare predictions on live distribution; validate serving latency under production load; diff features served vs trained ([03.md](03.md) Q18) ([08.md](08.md) Q51).
+- Mirror real traffic to the candidate; compare predictions on live distribution; validate serving latency under production load; diff features served vs trained ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q18) ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q51).
 - Duration: enough traffic to cover slices and edge cases (days).
 
 **3. Canary (bounded user risk):**
 - 1% → 5% → 25% traffic steps, each held for a minimum soak time and a full daily cycle if business metrics matter.
-- **Auto-abort criteria defined in advance:** error rate, p99 latency, guardrail business metric, fallback rate — breaching any rolls back automatically without a human ([08.md](08.md) Q49/Q53).
+- **Auto-abort criteria defined in advance:** error rate, p99 latency, guardrail business metric, fallback rate — breaching any rolls back automatically without a human ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q49/Q53).
 - Interleaving/holdout design where metrics are subtle (ranking): keep a small control arm on the old model even after ramp-up until fully confident.
 
 **4. Full rollout with the escape hatches intact:**
@@ -261,8 +261,8 @@ Alarm fires (any layer)
 **5. Specific retrained-model hazards to name:**
 - **Distribution-consistent but worse:** retrained model passes drift checks yet lost a slice — slice gates catch it.
 - **Threshold drift:** re-tune on calibration, as above.
-- **Feedback-loop amplification:** if the retrain absorbed served predictions, verify exploration/unbiased data was maintained ([02.md](02.md) Q15 anti-patterns).
-- **Version skew across replicas/regions:** all replicas load the same registry version before health gates open; per-region rollout tracked ([06.md](06.md) Q37).
+- **Feedback-loop amplification:** if the retrain absorbed served predictions, verify exploration/unbiased data was maintained ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q15 anti-patterns).
+- **Version skew across replicas/regions:** all replicas load the same registry version before health gates open; per-region rollout tracked ([06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md) Q37).
 
 **Interview sound bite:**
 > "Gates before users, shadow before canary, canary before full: offline gates vs the pinned champion with slice and calibration checks and a re-tuned threshold, shadow to validate serving behavior on live traffic, then stepped canary with pre-declared auto-abort criteria. The old champion stays warm for instant rollback, and the rollout counts as done only when matured labels confirm it."

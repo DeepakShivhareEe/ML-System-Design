@@ -1,7 +1,7 @@
 # 2. End-to-End ML Architecture
 
 > **Section 2 of 10** · Questions 8–15 · Estimated study time: 4–5 hours
-> Prerequisite: [01.md](01.md) Q3 (the 12 components). This chapter designs those components concretely.
+> Prerequisite: [01 - System Design Fundamentals.md](01 - System Design Fundamentals.md) Q3 (the 12 components). This chapter designs those components concretely.
 
 ---
 
@@ -90,13 +90,13 @@
 - Rule: **never train directly on raw**; always on the validated layer, so that a broken upstream source fails validation instead of poisoning the model.
 
 **Stage 4 — Feature computation.**
-- Batch features (Spark/dbt → offline store) for history; streaming features (Flink/Kafka Streams → online store) for freshness; point-in-time joins assemble training rows (detailed in [03.md](03.md) Q16–22).
+- Batch features (Spark/dbt → offline store) for history; streaming features (Flink/Kafka Streams → online store) for freshness; point-in-time joins assemble training rows (detailed in [03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q16–22).
 
 **Stage 5 — Serving the prediction.**
 - Online path: request → fetch features (online store, cache) → model → postprocess (thresholding, business rules, ranking blends) → response **and** log the (features, model version, prediction) tuple.
 - That logged tuple becomes **tomorrow's training data** — closing the loop. Label ingestion joins actual outcomes back by request ID later.
 
-**Failure thinking per stage:** collection can drop/duplicate (→ dedupe keys); ingestion can lag (→ freshness monitoring, backpressure); storage can corrupt (→ schema contracts + immutable raw); features can skew (→ shared code, Q13); serving can fail (→ fallbacks, [05.md](05.md) Q35).
+**Failure thinking per stage:** collection can drop/duplicate (→ dedupe keys); ingestion can lag (→ freshness monitoring, backpressure); storage can corrupt (→ schema contracts + immutable raw); features can skew (→ shared code, Q13); serving can fail (→ fallbacks, [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35).
 
 ---
 
@@ -114,12 +114,12 @@
 
 **Stage-by-stage design:**
 
-1. **Trigger:** cron (daily/weekly), new-data event, or drift alert ([07.md](07.md) Q47). Parameterized: `run(dataset_snapshot, config_version)`.
+1. **Trigger:** cron (daily/weekly), new-data event, or drift alert ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q47). Parameterized: `run(dataset_snapshot, config_version)`.
 2. **Data extraction & validation:** snapshot deterministic partitions (e.g. last 180 days); run schema + distribution checks; fail fast and loudly. Record the dataset hash/fingerprint — this is lineage.
 3. **Feature materialization:** point-in-time join of labels + features from the feature store's offline store (Q13). Freeze the feature set version.
 4. **Training & tuning:** train with fixed seed, logged hyperparameters, environment pinned (container digest). Distributed training (parameter servers / all-reduce, e.g. Horovod/Torch DDP) when data or model is large. Tuning via random/Bayesian search with early stopping — not exhaustive grids. Track every experiment (MLflow/W&B).
 5. **Evaluation:** held-out test set (time-based split, never random for temporal data), **slice metrics** (per segment, region, device), calibration check, comparison table vs current prod model (Q26), plus bias/fairness checks where required. Output: a model report card, stored with the model.
-6. **Registration (gated):** if eval passes thresholds → push artifact to registry with lineage (data hash, code commit, feature versions, metrics). Deployment to production is a *separate* CI/CD decision with human or automated approval ([08.md](08.md)).
+6. **Registration (gated):** if eval passes thresholds → push artifact to registry with lineage (data hash, code commit, feature versions, metrics). Deployment to production is a *separate* CI/CD decision with human or automated approval ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md)).
 7. **Idempotency & repeatability:** same inputs → same artifact (modulo GPU nondeterminism); re-running a failed step doesn't duplicate data (write to temp, atomic swap).
 
 **Scaling choices:** small data → single machine, sklearn/XGBoost; large tabular → Spark ML / distributed XGBoost; deep learning → GPU cluster with DDP; huge sparse recsys models → parameter servers or embedding sharding.
@@ -151,11 +151,11 @@ Client → LB → API service ─┬─► 1. validate/parse request
 4. **Prediction:** model loaded as a versioned artifact; concurrency via batching if throughput-bound; GPU/CPU pool; p99-aware batching timeout. For LLMs: streaming tokens, token budget, tool-call loop.
 5. **Postprocessing & policy:** apply threshold (e.g. P(fraud) > 0.7 → block), business rules, fairness constraints, ranking blends (relevance × recency × revenue), diversity re-ranking. Keep policy **outside** the model so it can change without retraining.
 6. **Prediction logging:** fire-and-forget (async producer) log of `{request_id, timestamp, user, features, model_version, prediction}` — the seed of future training data and drift monitoring. Never let logging failure block the response.
-7. **Response:** include prediction + model version + enough metadata for downstream debugging; degrade gracefully (default ranking, cached scores, "safe" response) when any stage times out ([05.md](05.md) Q35).
+7. **Response:** include prediction + model version + enough metadata for downstream debugging; degrade gracefully (default ranking, cached scores, "safe" response) when any stage times out ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q35).
 
-**Cross-cutting:** per-stage timeouts summing to the p99 budget; tracing (OpenTelemetry) spanning client → features → model; canary-aware routing headers; autoscaling on QPS/latency ([06.md](06.md)).
+**Cross-cutting:** per-stage timeouts summing to the p99 budget; tracing (OpenTelemetry) spanning client → features → model; canary-aware routing headers; autoscaling on QPS/latency ([06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md)).
 
-**Batch inference variant:** same stages, minus latency pressure — orchestrate nightly scoring of millions of rows into a predictions table the product reads (cheaper, hours-fresh; see [05.md](05.md) Q30).
+**Batch inference variant:** same stages, minus latency pressure — orchestrate nightly scoring of millions of rows into a predictions table the product reads (cheaper, hours-fresh; see [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q30).
 
 ---
 
@@ -200,7 +200,7 @@ Tokenizers, normalization stats, encoding maps, imputation defaults: fit on trai
 
 **4. Parity tests and skew monitoring (the safety net).**
 - Offline: golden-customer test — compute features for one entity through the batch path and the online path; diff.
-- Online: log features at serving time and compare their live distribution to the training distribution ([07.md](07.md) Q42); alarm on divergence.
+- Online: log features at serving time and compare their live distribution to the training distribution ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q42); alarm on divergence.
 
 **Common skew causes to name:** different languages/tools offline (Spark, Python) vs online (Java, Go); newest-value joins in training; late-arriving data included offline but not online; time-zone handling; null/imputation defaults differing; feature recomputed after model snapshot (updated aggregates).
 
@@ -231,7 +231,7 @@ Tokenizers, normalization stats, encoding maps, imputation defaults: fit on trai
 - Online store: TTL per feature group (freshness semantics).
 - Models: keep N versions + the champion; artifacts immutable.
 
-**Cost angle:** warehouse scans are the most expensive per byte — keep training-scale data in the lake and only aggregates/features in the warehouse ([09.md](09.md) Q54).
+**Cost angle:** warehouse scans are the most expensive per byte — keep training-scale data in the lake and only aggregates/features in the warehouse ([09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q54).
 
 ---
 
@@ -266,14 +266,14 @@ Tokenizers, normalization stats, encoding maps, imputation defaults: fit on trai
 1. **Trigger policy (what starts a run):**
    - *Scheduled:* daily/weekly — the default; predictable cost and cadence.
    - *Data-triggered:* N new labeled rows or a new day partition arrived.
-   - *Performance-triggered:* drift alarm or business-metric drop ([07.md](07.md) Q47).
+   - *Performance-triggered:* drift alarm or business-metric drop ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q47).
    Combine: schedule + triggers, with a cooldown to prevent thrash.
 
 2. **What is retrained:** full retrain (simple, expensive, most robust) vs warm-start from champion weights (cheap, risk of compounding bias) vs incremental/online learning (rare; needs careful validation and rollback). Also decide: retrain *model only*, or also *re-learn preprocessing stats* (usually yes — otherwise skew).
 
 3. **Evaluation gates before promotion:** must beat champion on primary metric by a margin (avoid noise-promotions), pass slice/feasibility checks, model-size/latency budgets, calibration. Champion must be pinned by version, not "whatever's in prod."
 
-4. **Safe rollout:** candidate → shadow (score silently) → canary (small % traffic with auto-abort) → full ([08.md](08.md)). Auto-rollback criteria defined *before* launch (error rate, latency, business guardrail).
+4. **Safe rollout:** candidate → shadow (score silently) → canary (small % traffic with auto-abort) → full ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md)). Auto-rollback criteria defined *before* launch (error rate, latency, business guardrail).
 
 5. **State & idempotency:** each run gets a versioned dataset snapshot + config hash; runs are idempotent; the registry is the single source of truth of "what's deployed where."
 

@@ -22,29 +22,29 @@
 **Answer.** Cost optimization has four levers, in order of ROI: **demand → model → hardware → pipeline.** Always quantify before and after.
 
 **1. Reduce demand (biggest lever — the cheapest prediction is the one you never make):**
-- **Batch-precompute** everything with tolerable staleness ([05.md](05.md) Q30): scoring 50M users nightly in one job vs 500 QPS online is 10–100× cheaper for the same scores.
-- **Caches** at three levels — features, predictions (keyed by model version), product views ([05.md](05.md) Q31/Q34).
+- **Batch-precompute** everything with tolerable staleness ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q30): scoring 50M users nightly in one job vs 500 QPS online is 10–100× cheaper for the same scores.
+- **Caches** at three levels — features, predictions (keyed by model version), product views ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q31/Q34).
 - **Cascades:** cheap path (rules/small model) handles 90–95% of traffic; expensive model only for uncertain/high-value cases ([Q57](#q57-how-do-you-trade-off-model-accuracy-latency-scalability-and-cost)).
 - **Prune dead features and models:** unused features still cost compute in every refresh; decommissioned models still occupy serving pools. Feature-usage audits pay real money.
 
 **2. Make the model cheaper per request:**
-- **Quantization** (INT8/FP8), **distillation** (big teacher → small student), **compilation** (ONNX Runtime/TensorRT) — commonly 2–5× inference speedup for negligible quality loss (re-verify on slices, [04.md](04.md) Q27).
+- **Quantization** (INT8/FP8), **distillation** (big teacher → small student), **compilation** (ONNX Runtime/TensorRT) — commonly 2–5× inference speedup for negligible quality loss (re-verify on slices, [04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q27).
 - Right-size architecture to the problem; avoid borrowing a frontier LLM for a task a fine-tuned small model does ([Q58](#q58-when-should-you-choose-a-simpler-model-instead-of-a-more-complex-one)).
 - For LLMs: prompt/response caching, shorter contexts, smaller models for easy calls, batch API for non-real-time work.
 
 **3. Buy smarter hardware / scheduling:**
 - **Spot/preemptible instances for training and batch** (60–90% off; design jobs to checkpoint and resume).
 - **Right-sizing + autoscaling:** GPU utilization dashboards routinely show <30% utilization — batch to raise it, or downsize. GPU sharing (MIG) for small models.
-- **Storage tiering:** raw data to cold tiers; expire per-retention policy ([02.md](02.md) Q14) — warehouse scan cost is the classic silent budget burner.
+- **Storage tiering:** raw data to cold tiers; expire per-retention policy ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q14) — warehouse scan cost is the classic silent budget burner.
 - Scheduled downscaling for predictable diurnal traffic; on-demand vs dedicated per tier.
 
 **4. Trim the pipeline around the model:**
-- Incremental training on recent partitions instead of full retrains when drift is mild ([02.md](02.md) Q15).
+- Incremental training on recent partitions instead of full retrains when drift is mild ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q15).
 - Deduplicate and sample training data where quality allows (1B rows of near-duplicates rarely beat 100M curated ones).
-- Retraining budget governance ([07.md](07.md) Q47): cooldowns, skip-when-delta-small.
-- Streaming only where freshness pays ([03.md](03.md) Q21): 3–10× pipeline cost for features that may not need it.
+- Retraining budget governance ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q47): cooldowns, skip-when-delta-small.
+- Streaming only where freshness pays ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q21): 3–10× pipeline cost for features that may not need it.
 
-**5. Measure what matters:** unit economics — **$/1k predictions**, $/training run, $/TB processed — as first-class metrics on dashboards and on every model scorecard ([04.md](04.md) Q26). Cost regressions should alarm like latency regressions; tag spend by model/team so optimization has a target.
+**5. Measure what matters:** unit economics — **$/1k predictions**, $/training run, $/TB processed — as first-class metrics on dashboards and on every model scorecard ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26). Cost regressions should alarm like latency regressions; tag spend by model/team so optimization has a target.
 
 **Interview sound bite:**
 > "I optimize cost in ROI order: eliminate demand — batch precompute, caches, cascades, dead-feature pruning; then make models cheaper — quantize, distill, compile; then buy smarter — spot for training, fix GPU utilization, tier storage; then trim the pipeline — incremental retrains and streaming only where freshness pays. Everything is tracked as $/1k predictions so regressions page like latency."
@@ -84,14 +84,14 @@
 **Answer.** Sensitive training data (PII, health, payments, proprietary) needs protection **at rest, in use, and after the model ships** — because models can memorize.
 
 **1. Minimize and de-identify first (cheapest control):**
-- Collect/retain only what the model needs ([01.md](01.md) Q7 data minimization); drop direct identifiers from feature stores.
+- Collect/retain only what the model needs ([01 - System Design Fundamentals.md](01 - System Design Fundamentals.md) Q7 data minimization); drop direct identifiers from feature stores.
 - **Pseudonymization** (tokenized IDs), **generalization** (age bands), **k-anonymity checks** for released datasets; keep the re-identification map in a separate, tightly-controlled store.
 - For unstructured data: PII detection/redaction pipelines (NER-based) before data lands in the lake.
 
 **2. Access governance (who sees what, ever):**
 - **Role-based access** on the lake/warehouse with column- and row-level policies; PII columns encrypted with key-level access separation.
 - **Audit trails** on every read of sensitive datasets; time-boxed, approved access for debugging (no standing prod-data access for engineers).
-- Data catalogs with PII classification driving automated policy ([02.md](02.md) Q14).
+- Data catalogs with PII classification driving automated policy ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q14).
 - **Retention & deletion:** retention schedules; honor GDPR/CCPA deletion (design deletion propagation through raw → curated → features — easier with ID-pseudonymization and partition-level expiry).
 
 **3. Cryptographic and infrastructure controls:** encryption at rest (KMS-managed keys) and in transit; private endpoints for data movement; regional data residency respected in pipeline topology; tokenization vaults for payment-class data (PCI scope reduction).
@@ -110,7 +110,7 @@
 
 ## Q57. How do you trade off model accuracy, latency, scalability, and cost?
 
-**Answer.** Frame it as a **constrained optimization, not a tiebreak**: accuracy is the objective, latency and scalability are constraints, cost is the budget — and then make every trade explicit and measured. (Complements [06.md](06.md) Q41, which focuses on the latency/accuracy/cost triangle; here we add scale and the decision framework.)
+**Answer.** Frame it as a **constrained optimization, not a tiebreak**: accuracy is the objective, latency and scalability are constraints, cost is the budget — and then make every trade explicit and measured. (Complements [06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md) Q41, which focuses on the latency/accuracy/cost triangle; here we add scale and the decision framework.)
 
 **Step 1 — Quantify the axes in the problem's own units:**
 - **Accuracy:** business-weighted lift (fraud $ saved per 1k transactions; revenue/session from ranking quality) — not abstract AUC.
@@ -119,13 +119,13 @@
 - **Cost:** $/1k predictions + fleet + engineering-maintenance cost (the hidden term — a complex system costs on-call attention forever).
 
 **Step 2 — Search the design space with the standard relaxers (in order of preference):**
-1. **Cascade/funnel:** cheap model + escalation on uncertainty — near-big-model accuracy at near-small-model latency/cost ([06.md](06.md) Q41 worked example).
+1. **Cascade/funnel:** cheap model + escalation on uncertainty — near-big-model accuracy at near-small-model latency/cost ([06 - Scalability, Reliability & Availability.md](06 - Scalability, Reliability & Availability.md) Q41 worked example).
 2. **Distill/quantize/compile:** move the accuracy-per-latency frontier rather than choosing a point on the old one.
-3. **Cache & precompute:** convert latency/cost problems into staleness problems ([05.md](05.md) Q30).
+3. **Cache & precompute:** convert latency/cost problems into staleness problems ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q30).
 4. **Asynchronize where the product allows:** rank while the page renders; stream partial LLM output.
 5. **Tier the service:** premium traffic (checkout) gets the expensive path; long-tail traffic gets precomputed scores.
 
-**Step 3 — Decide with explicit accept/reject rules:** e.g. "challenger must add ≥1% business lift at ≤+10 ms p99 and ≤+15% $/1k, else it loses to the simpler incumbent." Writing the rules down *before* seeing candidate results prevents motivated reasoning. This is the same discipline as pre-declared metrics in [04.md](04.md) Q26 and A/B pre-registration in [08.md](08.md) Q52.
+**Step 3 — Decide with explicit accept/reject rules:** e.g. "challenger must add ≥1% business lift at ≤+10 ms p99 and ≤+15% $/1k, else it loses to the simpler incumbent." Writing the rules down *before* seeing candidate results prevents motivated reasoning. This is the same discipline as pre-declared metrics in [04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26 and A/B pre-registration in [08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md) Q52.
 
 **Step 4 — Re-evaluate on a cadence:** hardware prices, model efficiency (small-model quality keeps rising), and traffic mix all move the optimum; the right architecture at 100 QPS (single box, sklearn) is wrong at 100k QPS (cascade + fleet). Revisit quarterly and at 10× traffic milestones.
 
@@ -148,13 +148,13 @@
 
 **4. The team has to operate it.** Operational simplicity compounds: a logistic regression/GBDT trains in minutes on one box, deploys as a container, debugs with feature attributions, and any engineer can own the on-call. A distributed-training, GPU-serving, custom-kernel model requires specialist skills on every incident. Match the model to the org's maturity, not the state of the art.
 
-**5. Data is small, noisy, or shifting.** Complex models overfit small data and take longer to re-adapt; simple models with good features win until data is abundant ([03.md](03.md) Q19 — features beat architecture in most tabular domains). Under drift, you retrain a simple model 10× more often for the same cost.
+**5. Data is small, noisy, or shifting.** Complex models overfit small data and take longer to re-adapt; simple models with good features win until data is abundant ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q19 — features beat architecture in most tabular domains). Under drift, you retrain a simple model 10× more often for the same cost.
 
-**6. You need to ship and learn fast.** The first version's job is to start the flywheel (log data, create the feedback loop, prove value); a simple model ships in weeks and gets replaced by evidence, not opinion ([02.md](02.md) Q10's iterate loop).
+**6. You need to ship and learn fast.** The first version's job is to start the flywheel (log data, create the feedback loop, prove value); a simple model ships in weeks and gets replaced by evidence, not opinion ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q10's iterate loop).
 
 **Choose the complex model when the opposite holds:** the accuracy delta is large and business-critical (speech recognition, recommendation quality at scale, LLM assistants), latency/cost budgets can absorb it, labels/data are abundant, the pattern is genuinely non-linear/high-dimensional (vision, language), and the team can operate the infra. Even then, simplify aggressively at the edges (distill, cascade) rather than abandoning the constraints.
 
-**A fair fight rule:** comparisons must give the simple model equal effort — tuned GBDT with engineered features, not a default-logistic-regression strawman. Many "deep learning wins" disappear against a properly tuned baseline ([04.md](04.md) Q23).
+**A fair fight rule:** comparisons must give the simple model equal effort — tuned GBDT with engineered features, not a default-logistic-regression strawman. Many "deep learning wins" disappear against a properly tuned baseline ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q23).
 
 **Interview sound bite:**
 > "I choose the simpler model when its ROI after serving cost, latency, and maintenance beats the complex one, when explainability or tight latency binds, when data is small or drifting, and when the team must operate it — which is most of the time. Complex earns its place only with a large, business-critical lift that survives the constraints, and even then I distill or cascade it rather than accept its full cost."

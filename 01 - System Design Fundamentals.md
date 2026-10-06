@@ -87,7 +87,7 @@ Traditional system design (URL shorteners, chat apps, rate limiters) deals with 
 **Key consequences that drive design decisions:**
 
 1. **Data is a first-class citizen.** Pipelines must validate, version, and monitor data the way code is linted, tested, and reviewed.
-2. **Training–serving consistency** becomes a real engineering problem (see [03.md](03.md) Q18): features computed offline in Python/batch must match features computed online in milliseconds.
+2. **Training–serving consistency** becomes a real engineering problem (see [03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q18): features computed offline in Python/batch must match features computed online in milliseconds.
 3. **Silent failure** means monitoring must watch *distributions*, not just *health* — a service returning 200s with garbage predictions is "up" but broken.
 4. **Feedback loops** — e.g. a recommendation model changes what users see, which changes what users click, which changes the training data — can bias the model over time and must be understood (exploration, randomization, logging of unbiased data).
 5. **Rollback is harder** — rolling back model weights may also require rolling back features and data snapshots in lockstep.
@@ -99,7 +99,7 @@ Traditional system design (URL shorteners, chat apps, rate limiters) deals with 
 
 ## Q3. What are the major components of an end-to-end ML system?
 
-**Answer.** A production ML system has **12 canonical components**. Memorize this list — every design case in [10.md](10.md) is a variation of it.
+**Answer.** A production ML system has **12 canonical components**. Memorize this list — every design case in [10 - System Design Cases.md](10 - System Design Cases.md) is a variation of it.
 
 ```
 ┌─────────────┐   ┌─────────────┐   ┌──────────────┐   ┌───────────────┐
@@ -134,7 +134,7 @@ Traditional system design (URL shorteners, chat apps, rate limiters) deals with 
 | 6 | **Training pipeline** | Data → features → train → validate → produce model artifact; orchestrated, reproducible | Kubeflow, Airflow, MLflow Projects, SageMaker, Ray |
 | 7 | **Model evaluation** | Offline metrics on held-out sets + slices + comparison vs incumbent | Custom + MLflow/Evidently metrics, offline replay |
 | 8 | **Model registry** | Versioned store of model artifacts + metadata + lineage + stage (staging/prod) | MLflow Registry, SageMaker Model Registry, Vertex Model Registry |
-| 9 | **Model deployment** | Move an approved model into serving infra safely | CI/CD + blue-green/canary/shadow ([08.md](08.md)) |
+| 9 | **Model deployment** | Move an approved model into serving infra safely | CI/CD + blue-green/canary/shadow ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md)) |
 | 10 | **Inference / serving** | Low-latency prediction API or batch scoring jobs | KServe, TorchServe, Triton, TF Serving, custom FastAPI/gRPC |
 | 11 | **Monitoring & alerting** | System health + data drift + model quality + business metrics | Prometheus/Grafana, Evidently/Arize/WhyLabs, cloud-native |
 | 12 | **Retraining loop** | Automated trigger → new data → retrain → evaluate → redeploy | Orchestrator (Airflow/Kubeflow) + registry + CI/CD |
@@ -153,7 +153,7 @@ Traditional system design (URL shorteners, chat apps, rate limiters) deals with 
 "Not enough users finish checkout" → business goal: increase checkout conversion by X%. Always ask: what does success look like *in money, retention, or user satisfaction*?
 
 **Step 2 — Decide if ML is even needed.**
-ML is justified when the problem is (a) a *prediction/pattern-recognition* task, (b) too complex for hand-written rules, and (c) data exists or can be collected. If 10 rules capture 95% of it, ship rules. This trade-off is revisited in [09.md](09.md) Q58.
+ML is justified when the problem is (a) a *prediction/pattern-recognition* task, (b) too complex for hand-written rules, and (c) data exists or can be collected. If 10 rules capture 95% of it, ship rules. This trade-off is revisited in [09 - Cost, Security & Practical Trade-offs.md](09 - Cost, Security & Practical Trade-offs.md) Q58.
 
 **Step 3 — Formalize as an ML task.** Map goal → task type → input/output:
 
@@ -278,9 +278,9 @@ Train → offline eval (cheap gate) → shadow (no user impact)
 
 **D. Success criteria & lifecycle**
 1. Primary metric + guardrails + minimum acceptable lift (Q5).
-2. Rollout plan: shadow → canary → full ([08.md](08.md)).
+2. Rollout plan: shadow → canary → full ([08 - Model Deployment Strategies.md](08 - Model Deployment Strategies.md)).
 3. Rollback policy and owner.
-4. Expected model lifecycle: how often retraining, who approves, what triggers it ([07.md](07.md)).
+4. Expected model lifecycle: how often retraining, who approves, what triggers it ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md)).
 
 **Red-flag answers that show seniority:**
 - "If labels arrive days later, real-time retraining isn't the right requirement — we'd retrain daily on D-1 labels."

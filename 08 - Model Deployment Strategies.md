@@ -87,10 +87,10 @@ LB ──► 99% ──► BLUE  (champion v1)
 
 **Design details that make canaries sound:**
 - **Randomized assignment** within the split (not "first 1% of requests" — that's a biased sample: same users, same geos, lighter traffic). Sticky per-user assignment when outcomes accumulate (user sees consistent experience).
-- **Pre-declared auto-abort criteria** — decided *before* launch, wired to automation: error rate > X, p99 > Y, business guardrail ↓, fallback rate > Z, or a statistical alarm on the primary metric. Humans approve *expansion*; automation executes *abort* ([07.md](07.md) Q48).
+- **Pre-declared auto-abort criteria** — decided *before* launch, wired to automation: error rate > X, p99 > Y, business guardrail ↓, fallback rate > Z, or a statistical alarm on the primary metric. Humans approve *expansion*; automation executes *abort* ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q48).
 - **Soak time:** at least one full daily cycle per step (traffic has daily shape); longer when labels mature slowly.
-- **Sample-size awareness:** at 1% traffic, you cannot detect small metric changes — treat early steps as bug-catching, later steps as measurement. Compute the minimum detectable effect for your traffic ([04.md](04.md) Q26).
-- **Watch slices,** not just aggregates — a 2% aggregate dip can be a 20% dip for one cohort ([04.md](04.md) Q27/Q28).
+- **Sample-size awareness:** at 1% traffic, you cannot detect small metric changes — treat early steps as bug-catching, later steps as measurement. Compute the minimum detectable effect for your traffic ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26).
+- **Watch slices,** not just aggregates — a 2% aggregate dip can be a 20% dip for one cohort ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q27/Q28).
 - **Long-tail risks appear late:** low-frequency events (rare fraud patterns, unusual devices) may not occur in the canary window at all; keep the post-promotion watch ([Q48](#q48-how-would-you-safely-deploy-a-retrained-model)).
 
 **Interview sound bite:**
@@ -110,8 +110,8 @@ Client ──► LB ──► API ──► BLUE model ──► prediction ─�
 ```
 
 **Why it exists — the only strategy with zero user impact — used for:**
-1. **Serving-behavior validation on real data:** latency p99 under production load, memory/GPU headroom, error rates — benchmarks lie; shadow doesn't ([05.md](05.md) Q31/Q33).
-2. **Training–serving skew detection:** compare features *as served* to features *as the candidate trained on them* — the definitive skew test ([03.md](03.md) Q18).
+1. **Serving-behavior validation on real data:** latency p99 under production load, memory/GPU headroom, error rates — benchmarks lie; shadow doesn't ([05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q31/Q33).
+2. **Training–serving skew detection:** compare features *as served* to features *as the candidate trained on them* — the definitive skew test ([03 - Data & Feature Engineering.md](03 - Data & Feature Engineering.md) Q18).
 3. **Prediction-distribution comparison:** does the challenger's score distribution shift vs the champion on identical requests? Flags threshold/policy implications before users are exposed.
 4. **Offline-agreement analysis at scale:** log both predictions, join outcomes later, and compute "what would have happened" — a rich head-to-head dataset without an experiment.
 5. **First production exposure of brand-new architectures** (new model family, first LLM integration, first GPU pipeline) where confidence is low.
@@ -141,7 +141,7 @@ User traffic ──► │                                                      
 ```
 
 **Why ML needs it (more than ordinary software):**
-- Offline metrics predict statistical quality, not user/business reaction — the offline→online gap ([01.md](01.md) Q6, [04.md](04.md) Q28).
+- Offline metrics predict statistical quality, not user/business reaction — the offline→online gap ([01 - System Design Fundamentals.md](01 - System Design Fundamentals.md) Q6, [04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q28).
 - ML systems have **feedback loops**: the model changes what users see, which changes behavior — only a live experiment captures that.
 - Model effects are often small (0.5–2% metric moves) — only a randomized test can distinguish them from noise.
 
@@ -151,7 +151,7 @@ User traffic ──► │                                                      
 3. **Randomization unit & stickiness:** per-user (most common), sticky hashing so users keep their arm; per-request randomization only when no cumulative user experience exists; watch for cross-arm contamination (shared caches must be keyed by arm!).
 4. **Run cleanly:** full weekly cycles (weekday/weekend shape), avoid launching mid-seasonal-events, don't peek-and-stop early without sequential-testing corrections, check **SRM** (sample-ratio mismatch) before reading any metric — a 50/50 split that arrives 50.7/49.3 means randomization is broken and *all* numbers are suspect.
 5. **Read results properly:** primary metric first with confidence intervals; guardrails must hold; slice the results (new vs returning, platforms, geos) — aggregate wins with slice losses ship landmines; watch novelty effects (week-1 lift that decays) by comparing week 1 vs week 2.
-6. **Decision & record:** ship / don't ship / iterate — and log the result in the model registry ([04.md](04.md) Q26): tribal-memory experiment history is how teams re-run losing battles.
+6. **Decision & record:** ship / don't ship / iterate — and log the result in the model registry ([04 - Model Training & Evaluation.md](04 - Model Training & Evaluation.md) Q26): tribal-memory experiment history is how teams re-run losing battles.
 
 **ML-specific pitfalls to name:**
 - **Interference/network effects:** marketplaces and social products violate i.i.d. randomization (user's treatment affects control users' experience) — consider cluster/time-based designs or switchback tests.
@@ -172,7 +172,7 @@ User traffic ──► │                                                      
 
 **1. Pre-declared triggers (decided at launch, wired to automation):**
 - **System:** error rate, p99 latency, OOM/crash loops on the new version.
-- **Quality signals:** score-distribution shift ([07.md](07.md) Q45), abstention/fallback-rate spike, human-overturn rate.
+- **Quality signals:** score-distribution shift ([07 - Monitoring, Drift & Retraining.md](07 - Monitoring, Drift & Retraining.md) Q45), abstention/fallback-rate spike, human-overturn rate.
 - **Business guardrails:** primary metric below floor over a rolling window; complaint/loss-rate breach.
 - **Label-based (slower):** matured-cohort metrics below the promotion gate.
 Each trigger has: threshold, evaluation window, action (alert → auto-rollback for system/quality triggers; human-approved for slow business triggers), and an owner.
@@ -183,13 +183,13 @@ rollback = model version  +  feature-vector schema  +  threshold/policy config  
 ```
 - **Warm standby is the difference between minutes and hours:** keep the previous champion loaded and serving-ready (blue-green idle pool or last-known-good canary pool). Cold rollback = re-pulling artifacts + loading + readiness checks = 10–40 min; warm rollback = LB flip, seconds.
 - **Artifact integrity:** the exact previous registry version (never "rebuild the old model") — immutable, checksummed, with its lineage.
-- **Config/schema compatibility:** the old model's expected feature schema and threshold config are versioned *with* the model so a rollback is one coordinated switch; this is why deployment units are versioned stacks, not bare weights ([02.md](02.md) Q14).
+- **Config/schema compatibility:** the old model's expected feature schema and threshold config are versioned *with* the model so a rollback is one coordinated switch; this is why deployment units are versioned stacks, not bare weights ([02 - End-to-End ML Architecture.md](02 - End-to-End ML Architecture.md) Q14).
 - **Downstream coupling:** consumers who cached/reacted to the new model's outputs must tolerate the old model's outputs (versions in logs make the triage possible).
 
 **3. Traffic surgery while rolling back:**
 - Canary: shift 100% back to control at the router; the abort path is tested *before* launch by dry-running it.
 - Blue-green: LB flip to the idle color.
-- Stateful caches: predictions cached under the bad model version are invalidated (model-version-keyed caches make this trivial — [05.md](05.md) Q31).
+- Stateful caches: predictions cached under the bad model version are invalidated (model-version-keyed caches make this trivial — [05 - Online Inference & Serving.md](05 - Online Inference & Serving.md) Q31).
 
 **4. After the rollback:**
 - Freeze the bad version in the registry with its failure signature (metrics, slices, hypotheses) — institutional memory prevents re-promoting the same idea next sprint.
